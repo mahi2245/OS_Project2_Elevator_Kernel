@@ -1,44 +1,44 @@
 # Elevator
 
-[Description]
+A kernel programming project to study how system calls and kernel modules work. It ends with building a small elevator scheduler inside the kernel to practice concurrency and synchronization.
 
 ## Group Members
-- **John Doe**: jd19@fsu.edu
-- **Jane Smith**: js19@fsu.edu
-- **Alex Brown**: ab19@fsu.edu
+- **Chris Ferrer**: caf22i@fsu.edu
+- **Isaac Formato**: ijf21b@fsu.edu
+- **Mahi Agrawal**: ma23k@fsu.edu
 ## Division of Labor
 
 ### Part 1: System Call Tracing
 - **Responsibilities**: [Description]
-- **Assigned to**: John Doe
+- **Assigned to**: Isaac Formato
 
 ### Part 2: Timer Kernel Module
 - **Responsibilities**: [Description]
-- **Assigned to**: Jane Smith
+- **Assigned to**: Chris Ferrer
 
 ### Part 3a: Adding System Calls
 - **Responsibilities**: [Description]
-- **Assigned to**: Alex Brown
+- **Assigned to**: Mahi Agrawal
 
 ### Part 3b: Kernel Compilation
 - **Responsibilities**: [Description]
-- **Assigned to**: Alex Brown, Jane Smith
+- **Assigned to**: Mahi Agrawal
 
 ### Part 3c: Threads
 - **Responsibilities**: [Description]
-- **Assigned to**: Alex Brown, Jane Smith
+- **Assigned to**: Isaac Formato
 
 ### Part 3d: Linked List
 - **Responsibilities**: [Description]
-- **Assigned to**: Jane Smith
+- **Assigned to**: Chris Ferrer
 
 ### Part 3e: Mutexes
 - **Responsibilities**: [Description]
-- **Assigned to**: John Doe
+- **Assigned to**: Isaac Formato
 
 ### Part 3f: Scheduling Algorithm
 - **Responsibilities**: [Description]
-- **Assigned to**: Alex Brown, John Doe
+- **Assigned to**: Chris Ferrer
 
 ## File Listing
 ```
@@ -114,7 +114,7 @@ This will run the program ...
 ## Development Log
 Each member records their contributions here.
 
-### [Member 1]
+### [Chris Ferrer]
 
 | Date       | Work Completed / Notes |
 |------------|------------------------|
@@ -122,7 +122,7 @@ Each member records their contributions here.
 | YYYY-MM-DD | [Description of task]  |
 | YYYY-MM-DD | [Description of task]  |
 
-### [Member 2]
+### [Isaac Formato]
 
 | Date       | Work Completed / Notes |
 |------------|------------------------|
@@ -131,13 +131,14 @@ Each member records their contributions here.
 | YYYY-MM-DD | [Description of task]  |
 
 
-### [Member 3]
+### [Mahi Agrawal]
 
 | Date       | Work Completed / Notes |
 |------------|------------------------|
-| YYYY-MM-DD | [Description of task]  |
-| YYYY-MM-DD | [Description of task]  |
-| YYYY-MM-DD | [Description of task]  |
+| 2025-10-07 | [Setup GitHub repository and push starter files]  |
+| 2025-10-15 | [Setup Lab VM]  |
+| 2025-10-16 | [Complete Part 3a]  |
+| 2025-10-18 | [Complete Part 3b]  |
 
 
 ## Meetings
@@ -145,7 +146,7 @@ Document in-person meetings, their purpose, and what was discussed.
 
 | Date       | Attendees            | Topics Discussed | Outcomes / Decisions |
 |------------|----------------------|------------------|-----------------------|
-| YYYY-MM-DD | [Names]              | [Agenda items]   | [Actions/Next steps]  |
+| 2025-10-07 | [Chris Ferrer, Isaac Formato, Mahi Agrawal]              | [Division of Labor]   | [Begin with our divided tasks]  |
 | YYYY-MM-DD | [Names]              | [Agenda items]   | [Actions/Next steps]  |
 | YYYY-MM-DD | [Names]              | [Agenda items]   | [Actions/Next steps]  |
 
@@ -157,3 +158,4 @@ Document in-person meetings, their purpose, and what was discussed.
 - **Bug 3**: This is bug 3.
 
 ## Considerations
+
