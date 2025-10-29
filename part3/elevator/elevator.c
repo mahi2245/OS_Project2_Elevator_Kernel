@@ -1,9 +1,9 @@
 #include <linux/list.h>
 #include <linux/mutex.h>
 #include <linux/kthread.h>
-#include <linux/sched.h>
 #include <linux/slab.h>
 #include<linux/module.h>
+#include<linux/delay.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("OSPROJ2GROUP24");
@@ -81,6 +81,7 @@ static int runningElevator(void *data) {
                 currPets -=1;
                 list_del(temp);
                 kfree(item);
+                ssleep(1);
             }
         }
 
@@ -93,6 +94,7 @@ static int runningElevator(void *data) {
                     list_del(temp);
                     maxWeight += weightCheck(item->type);
                     currPets += 1;
+                    ssleep(1);
                 }
              }
         }
@@ -110,6 +112,7 @@ static int runningElevator(void *data) {
         else {
             currFloor-=1;
         }
+        ssleep(2);
         mutex_unlock(&mut);
 
     }
@@ -117,7 +120,7 @@ static int runningElevator(void *data) {
 }
 
 
-static int stopOperation() {
+static int stopOperation(void *data) {
     struct list_head *temp, *dummy;
     pet * item;
     while (!kthread_should_stop()){
@@ -131,10 +134,12 @@ static int stopOperation() {
                         currPets -=1;
                         list_del(temp);
                         kfree(item);
+                        ssleep(1);
                     }
                 }
+                mutex_unlock(&mut);
 
-
+            mutex_lock(&mut);
             //in actuality, either follow scheduling algo
             // or go directly to
             if (currFloor == 4) {
@@ -150,6 +155,7 @@ static int stopOperation() {
             else {
                 currFloor-=1;
             }
+            ssleep(2);
             mutex_unlock(&mut);
         }
     }
@@ -160,7 +166,7 @@ static int stopOperation() {
 
 
 
-static int procRequest() {
+static int procRequest(void *data) {
     struct list_head *temp, *dummy;
     pet * item;
     while (!kthread_should_stop()){
@@ -168,7 +174,7 @@ static int procRequest() {
         // or while queue is occupied with pets
         // should work through this queue, adding them onto floors
         mutex_lock(&mut);
-        list_for_each_safe(temp, dummy, &floorPets[currFloor]){
+        list_for_each_safe(temp, dummy, &waitingPets){
             item = list_entry(temp, pet, list);
             list_add_tail(&item->list, &floorPets[item->destination]);
             list_del(temp);      
@@ -183,8 +189,13 @@ static int procRequest() {
 
 
 static int __init elevator_init(void) {
+    // set up lists 
+    INIT_LIST_HEAD(&elevatorPets);
+    INIT_LIST_HEAD(&waitingPets);
+    for (int i = 0; i < 5; i++){
+        INIT_LIST_HEAD(&floorPets[i]);
+    }
     mutex_init(&mut);
-    printk(KERN_INFO, "setting up threads?");
     elevator_thread = kthread_run(runningElevator, NULL, "elevator_thread");
     stop_thread = kthread_run(stopOperation, NULL, "stop_thread");
     proc_thread = kthread_run(procRequest, NULL, "proc_thread");
@@ -192,13 +203,6 @@ static int __init elevator_init(void) {
 }
 
 static void __exit elevator_exit() {
-
-    // set up lists 
-    INIT_LIST_HEAD(&elevatorPets);
-    INIT_LIST_HEAD(&waitingPets);
-    for (int i = 0; i < 5; i++){
-        INIT_LIST_HEAD(&floorPets[i]);
-    }
 
     kthread_stop(elevator_thread);
     kthread_stop(stop_thread);
