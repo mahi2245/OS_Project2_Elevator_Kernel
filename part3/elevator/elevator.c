@@ -117,10 +117,10 @@ static int runningElevator(void *data) {
 }
 
 
-int stopOperation() {
+static int stopOperation() {
     struct list_head *temp, *dummy;
     pet * item;
-    while (true){
+    while (!kthread_should_stop()){
         if (stop == 1) {
             while (!list_empty(&elevatorPets)) {
                 mutex_lock(&mut);
@@ -160,7 +160,7 @@ int stopOperation() {
 
 
 
-int procRequest() {
+static int procRequest() {
     struct list_head *temp, *dummy;
     pet * item;
     while (!kthread_should_stop()){
@@ -192,6 +192,14 @@ static int __init elevator_init(void) {
 }
 
 static void __exit elevator_exit() {
+
+    // set up lists 
+    INIT_LIST_HEAD(&elevatorPets);
+    INIT_LIST_HEAD(&waitingPets);
+    for (int i = 0; i < 5; i++){
+        INIT_LIST_HEAD(&floorPets[i]);
+    }
+
     kthread_stop(elevator_thread);
     kthread_stop(stop_thread);
     kthread_stop(proc_thread);
