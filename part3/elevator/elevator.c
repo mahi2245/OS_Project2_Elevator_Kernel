@@ -70,7 +70,6 @@ int stop_elevator(void);                                                        
 static ssize_t procfile_read(struct file* file, char* ubuf, size_t count, loff_t *ppos) {
     int waiting_pets = 0;
 	mutex_lock(&mut);
-    //procfs_buf_len = snprintf(msg + procfs_buf_len, BUF_LEN, "current time: %lld.%9ld\nelapsed time: %lld.%9ld\n", time.tv_sec, time.tv_nsec, secs, nsecs);
     procfs_buf_len = snprintf(msg + procfs_buf_len, BUF_LEN, "Elevator state: ");
     switch (elevator.status) {
         case OFFLINE:
@@ -157,27 +156,169 @@ static const struct proc_ops procfile_fops = {
 int elevatorLoop(void* data) {
     while(!kthread_should_stop()) {
         while (elevator.status == OFFLINE && !kthread_should_stop()) {
-            printk("ELEVATOR PRE SLEEP OFFLINE");
             msleep_interruptible(1000);
         }
-        printk("ELEVATOR PRE SLEEP IDLE");
-        msleep_interruptible(2000);
-//        int waiting_pets = 0;
-//        Floor* f;
-//        Pet* p;
-//        list_for_each_entry(f, &building.floors, node) {
-//            list_for_each_entry(p, &f->pets, node) {
-//                waiting_pets++;
-//            }
-//        }
+        if (elevator.canpickup == 0 && elevator.num_pets == 0) {
+            elevator.status = OFFLINE;
+            continue;
+        }
+        mutex_lock(&mut);
+        if (elevator.status == IDLE) {
+        	int waiting_pets = 0;
+            int d = 99999;
+            int close_pet = -1;
+        	Floor* f;
+        	Pet* p;
+        	list_for_each_entry(f, &building.floors, node) {
+            	list_for_each_entry(p, &f->pets, node) {
+                	if (abs(f->floor_num-elevator.current_floor) < d) {
+                        d = abs(f->floor_num-elevator.current_floor);
+                        close_pet = f->floor_num;
+                    }
+             	   	waiting_pets++;
+            	}
+        	}
+            if (waiting_pets > 0) {
+				elevator.target = close_pet;
+                if (elevator.target == elevator.current_floor) {
+                	elevator.status = LOADING;
+                    mutex_unlock(&mut);
+                    msleep(1000);
+                    mutex_lock(&mut);
+					Floor *a;
+					Pet *y, *z;
+                    list_for_each_entry(a, &building.floors, node) {
+                        if (elevator.current_floor == a->floor_num) {
+                            list_for_each_entry_safe(y, z, &a->pets, node) {
+                                if (elevator.num_pets < 5 && elevator.weight + y->weight <= 50 && elevator.canpickup == 1) {
+                                    list_del(&y->node);
+                                    list_add_tail(&y->node, &elevator.pets);
+                                    a->num_pets--;
+                                    elevator.num_pets++;
+                                    elevator.weight+=y->weight;
+                                } else {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+
+                    int closest_floor = 99999;
+                    d = 99999;
+                    list_for_each_entry(z, &elevator.pets, node) {
+                        if (abs(z->goal-elevator.current_floor) < d) {
+                            d = abs(z->goal-elevator.current_floor);
+                            closest_floor = z->goal;
+                        }
+                    }
+                    elevator.target = closest_floor;
+                    if (elevator.target < elevator.current_floor) {
+                        elevator.status = DOWN;
+                    }
+                    else {
+                        elevator.status = UP;
+                    }
+                    mutex_unlock(&mut);
+                    continue;
+                } else {
+                    if (elevator.target < elevator.current_floor) {
+                        elevator.status = DOWN;
+                    }
+                    else {
+                        elevator.status = UP;
+                    }
+                    mutex_unlock(&mut);
+                    continue;
+                }
+            }
+            mutex_unlock(&mut);
+        } else if (elevator.status == UP || elevator.status == DOWN) {
+            mutex_unlock(&mut);
+            msleep(2000);
+            mutex_lock(&mut);
+            if (elevator.status == UP)
+                elevator.current_floor++;
+            else
+                elevator.current_floor--;
+            Floor *a;
+			Pet *y, *z;
+            if (elevator.target == elevator.current_floor) {
+                list_for_each_entry(a, &building.floors, node) {
+                    if (elevator.current_floor == a->floor_num) {
+                        list_for_each_entry_safe(y, z, &elevator.pets, node) {
+                            if (elevator.status != LOADING) {
+                                elevator.status = LOADING;
+                                mutex_unlock(&mut);
+                                msleep(1000);
+                                mutex_lock(&mut);
+                            }
+                            if (y->goal == elevator.current_floor) {
+                                elevator.num_pets--;
+                                elevator.weight-=y->weight;
+                                elevator.total++;
+                                list_del(&y->node);
+                                kvfree(y);
+                            }
+                        }
+                    }
+                }
+            }
+
+            list_for_each_entry(a, &building.floors, node) {
+                if (elevator.current_floor == a->floor_num) {
+                    list_for_each_entry_safe(y, z, &a->pets, node) {
+                        if (elevator.num_pets < 5 && elevator.weight + y->weight <= 50 && elevator.canpickup == 1) {
+                            if (elevator.status != LOADING) {
+                                elevator.status = LOADING;
+                                mutex_unlock(&mut);
+                                msleep(1000);
+                                mutex_lock(&mut);
+                            }
+                            list_del(&y->node);
+                            list_add_tail(&y->node, &elevator.pets);
+                            a->num_pets--;
+                            elevator.num_pets++;
+                            elevator.weight+=y->weight;
+                        } else {
+                            break;
+                        }
+                    }
+                }
+            }
+            if (elevator.status == LOADING) {
+                if (elevator.num_pets == 0) {
+                    elevator.status = IDLE;
+                    mutex_unlock(&mut);
+                    continue;
+                }
+                if (elevator.target == elevator.current_floor) {
+                    int closest_floor = 99999;
+                    int d = 99999;
+                    list_for_each_entry(z, &elevator.pets, node) {
+                        if (abs(z->goal-elevator.current_floor) < d) {
+                            d = abs(z->goal-elevator.current_floor);
+                            closest_floor = z->goal;
+                        }
+                    }
+                    elevator.target = closest_floor;
+                }
+            }
+            if (elevator.target < elevator.current_floor)
+                elevator.status = DOWN;
+            else
+                elevator.status = UP;
+            mutex_unlock(&mut);
+            continue;
+        }
     }
-return 0;
+    return 0;
 }
 
 int start_elevator(void) {
     mutex_lock(&mut);
     if (elevator.status == OFFLINE) {
         wake_up_process(elevator_thread);
+        elevator.canpickup = 1;
         elevator.status = IDLE;
     } else {
         mutex_unlock(&mut);
@@ -226,17 +367,20 @@ int issue_request(int start_floor, int destination_floor, int type) {
 int stop_elevator(void) {
     if (elevator.canpickup == 0) return 1;
     mutex_lock(&mut);
+    printk("ELEVATOR STOP CALLED");
     if (elevator.status != OFFLINE) {
-        while (list_count_nodes(&elevator.pets) > 0) {
+        printk("ELEVATOR NOT OFFLINE YET");
+        while (elevator.num_pets > 0) {
+            printk("ELEVATOR STOP WHILE LOOP");
             elevator.canpickup = 0;
             mutex_unlock(&mut);
             msleep(2000);
             mutex_lock(&mut);
         }
         elevator.status = OFFLINE;
+        printk("ELEVATOR OFFLINE");
     }
     mutex_unlock(&mut);
-
     return 0;
 }
 
@@ -276,11 +420,7 @@ static int __init elevator_init(void) {
 }
 
 static void __exit elevator_exit(void) {
-    printk("ELEVATOR PRESTOP");
-    //stop_elevator();
-    printk("ELEVATOR POSTSTOP");
-
-    printk("ELEVATOR PREKILL");
+    stop_elevator();
     int ret = kthread_stop(elevator_thread);
     if (ret != -EINTR)
         printk("elevator thread stopped\n");
@@ -298,12 +438,8 @@ static void __exit elevator_exit(void) {
     STUB_start_elevator = NULL;
     STUB_issue_request = NULL;
     STUB_stop_elevator = NULL;
-
     proc_remove(proc_entry);
 }
-
-
-
 
 module_init(elevator_init);  // Specify the initialization function
 module_exit(elevator_exit);  // Specify the exit/cleanup function
